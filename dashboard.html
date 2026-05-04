@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IT Admin Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: #fff; margin: 0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .card { background: #2d2d2d; border-radius: 8px; padding: 15px; text-align: center; }
+        .card img { width: 100%; border-radius: 4px; cursor: pointer; }
+        .controls { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+        button { background: #007bff; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .danger { background: #dc3545; }
+        .danger:hover { background: #bd2130; }
+        
+        /* Modal */
+        #modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; flex-direction: column; }
+        #modal img { max-width: 90%; max-height: 80%; }
+        .close-btn { position: absolute; top: 20px; right: 30px; font-size: 3rem; cursor: pointer; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h1>🖥️ Workstation Monitoring Dashboard</h1>
+
+    <div class="grid">
+        {% for screen in screens %}
+        {% set machine_id = screen.replace('.jpg', '') %}
+        <div class="card">
+            <h3>{{ machine_id }}</h3>
+            <img src="/monitors/{{ screen }}" alt="{{ machine_id }}" onclick="openFullscreen('{{ screen }}')">
+            
+            <div class="controls">
+                <button onclick="sendCommand('{{ machine_id }}', 'lock')">🔒 Lock PC</button>
+                <button class="danger" onclick="sendCommand('{{ machine_id }}', 'restrict')">⚠️ Restrict</button>
+                <button onclick="sendCommand('{{ machine_id }}', 'unrestrict')">🔓 Unrestrict</button>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <input type="text" id="type-{{ machine_id }}" placeholder="Type on PC..." />
+                <button onclick="typeText('{{ machine_id }}')">Send Text</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="modal">
+        <span class="close-btn" onclick="closeFullscreen()">&times;</span>
+        <img id="modal-img" src="" alt="Full Screen">
+        </div>
+
+    <script>
+        function sendCommand(machineId, action) {
+            fetch('/send_command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ machine_id: machineId, action: action })
+            }).then(res => res.json())
+              .then(data => alert(`Command ${action} sent to ${machineId}`));
+        }
+
+        function typeText(machineId) {
+            const text = document.getElementById(`type-${machineId}`).value;
+            fetch('/send_command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ machine_id: machineId, action: 'type', text: text })
+            }).then(res => res.json())
+              .then(data => alert('Typing command sent!'));
+        }
+
+        function openFullscreen(filename) {
+            document.getElementById('modal-img').src = `/monitors/${filename}`;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeFullscreen() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Auto-refresh the dashboard every 3 seconds to see live screen updates
+        setInterval(() => {
+            window.location.reload();
+        }, 3000);
+    </script>
+</body>
+</html>
